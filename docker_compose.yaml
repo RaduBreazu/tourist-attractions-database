@@ -1,0 +1,50 @@
+version: '3'
+services:
+  database:
+    build:
+      context: .
+      dockerfile: Dockerfile_database
+    ports:
+      - "1521:1521"
+      - "5500:5500"
+    volumes:
+      - db:/opt/oracle/oradata
+      - scripts:/scripts
+    environment:
+      - ORACLE_PWD=proiectBD2
+      - ORACLE_CHARACTERSET=AL32UTF8
+      - ORACLE_SID=XE
+      - ORACLE_ALLOW_REMOTE=true
+    networks:
+      - common_network
+  
+  application:
+    build:
+      context: .
+      dockerfile: Dockerfile_application
+    ports:
+      - "8080:8080"
+    volumes:
+      - app:/app
+    environment:
+      - DB_HOST=database
+      - DB_PORT=1521
+      - DB_SID=XE
+      - DB_USER=system
+      - DB_PASSWORD=proiectBD2
+    depends_on:
+      - database
+    networks:
+      - common_network
+
+volumes:
+  db:
+    driver: local
+  scripts:
+    driver: local
+  app:
+    driver: local
+
+networks:
+  common_network:
+    driver: bridge
