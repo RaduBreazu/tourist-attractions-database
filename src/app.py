@@ -44,6 +44,8 @@ def show(data : list[any]) -> str:
 
 def plot_most_common_destinations(conn : Connection, n : int):
     result = callFunction(conn, 'TRENDING_DESTINATIONS', [n])
+    if result is None:
+        return
     
     # plot result
     plt.rcParams["figure.figsize"] = (8, 6)
@@ -54,6 +56,22 @@ def plot_most_common_destinations(conn : Connection, n : int):
     plt.xlabel('Destinations')
     plt.ylabel('Number of prospecting tourists')
     plt.title('Most popular destinations right now')
+    plt.show()
+
+def plot_least_visited_destinations_by_women(conn : Connection, n : int):
+    result = callFunction(conn, 'LEAST_VISITED_DESTINATIONS_WOMEN', [n])
+    if result is None:
+        return
+    
+    # plot result
+    plt.rcParams["figure.figsize"] = (8, 6)
+    x_axis = np.arange(len(result))
+    width = 0.5
+    plt.bar(x_axis, list(map(lambda x: x[1], result)), width)
+    plt.xticks(x_axis, list(map(lambda x: x[0], result)))
+    plt.xlabel('Destinations')
+    plt.ylabel('Number of prospecting tourists')
+    plt.title('Least visited destinated by women (last year)')
     plt.show()
 
 def main():

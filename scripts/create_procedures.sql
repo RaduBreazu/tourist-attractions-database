@@ -19,21 +19,6 @@ BEGIN
     RETURN v_cursor;
 END TRENDING_DESTINATIONS;
 
-DECLARE
-    v_cursor SYS_REFCURSOR;
-    v_name_country_count VARCHAR2(100);
-    v_name_int NUMBER(6);
-BEGIN
-    v_cursor := TRENDING_DESTINATIONS(5);
-    LOOP
-        FETCH v_cursor INTO v_name_country_count, v_name_int;
-        EXIT WHEN v_cursor%NOTFOUND;
-        DBMS_OUTPUT.PUT_LINE(v_name_country_count || ' ' || v_name_int);
-    END LOOP;
-    CLOSE v_cursor;
-END;
-/
-
 /*
     Trigger that inserts a new row in the HISTORY table whenever the finish date of a tour has passed.
     The trigger also deletes the record from the JOURNEYS table.
@@ -136,3 +121,24 @@ BEGIN
         RETURN 'Non-binary';
     END IF;
 END GET_GENDER;
+
+/*
+    Function that determines the destinations that were least visited by women last year, ordered by
+    the number of tourists that have visited them last year.
+    The function takes as input the number `n` of destinations to be returned.
+*/
+CREATE OR REPLACE FUNCTION LEAST_VISITED_DESTINATIONS_WOMEN(n IN NUMBER) RETURN SYS_REFCURSOR
+IS
+    v_cursor SYS_REFCURSOR;
+BEGIN
+    OPEN v_cursor FOR
+        SELECT D.NAME || ', ' || D.COUNTRY, COUNT(DISTINCT J.TOURIST_ID)
+        FROM JOURNEYS J JOIN TOURISTS T ON J.TOURIST_ID = T.ID
+                        JOIN DESTINATIONS D ON J.DESTINATION_ID = D.ID 
+        WHERE EXTRACT(YEAR FROM J.START_DATE) = EXTRACT(YEAR FROM SYSDATE) - 1 AND GET_GENDER(T.NAME) = 'Female'
+        GROUP BY D.NAME, D.COUNTRY
+        ORDER BY (SELECT COUNT(DISTINCT TOURIST_ID) FROM HISTORY
+                  WHERE DESTINATION_NAME = D.NAME AND DESTINATION_COUNTRY = D.COUNTRY AND EXTRACT(YEAR FROM START_DATE) = EXTRACT(YEAR FROM SYSDATE) - 1)
+        FETCH FIRST n ROWS ONLY;
+    RETURN v_cursor;
+END LEAST_VISITED_DESTINATIONS_WOMEN;
