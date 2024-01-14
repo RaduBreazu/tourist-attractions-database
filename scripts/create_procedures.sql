@@ -109,22 +109,35 @@ END DESTINATIONS_LAST_YEAR;
 */
 CREATE OR REPLACE FUNCTION GET_GENDER(traveller_name IN VARCHAR2) RETURN VARCHAR2
 IS
-    end_letters VARCHAR2(2) := SUBSTR(traveller_name, -2, 2); -- in Greek, we need just the last two letters to determine the gender
-    is_male BOOLEAN := CASE WHEN end_letters IN ('ος', 'ης', 'ας', 'ων', 'ός', 'ής', 'άς') THEN TRUE ELSE FALSE END;
-    is_female BOOLEAN := CASE WHEN SUBSTR(end_letters, 2, 1) IN ('α', 'η', 'ω', 'ά', 'ή', 'ού', 'ώ') THEN TRUE ELSE FALSE END;
+    end_letters VARCHAR2(5); -- Greek letters take up 2 bytes each
+    is_male BOOLEAN;
+    is_female BOOLEAN;
 BEGIN
-    IF is_male OR traveller_name = 'Άδωνις' THEN
-        RETURN 'Male';
-    ELSIF is_female OR traveller_name = 'Άρτεμις' OR traveller_name = 'Ελισάβετ' THEN
-        RETURN 'Female';
+    IF traveller_name IS NOT NULL AND LENGTH(traveller_name) >= 2 THEN
+        end_letters := SUBSTR(traveller_name, -2, 2); -- in Greek, we need just the last two letters to determine the gender
     ELSE
-        RETURN 'Non-binary';
+        end_letters := traveller_name;
+    END IF;
+    
+    IF end_letters IS NULL THEN
+        RETURN 'Error: traveller name is null';
+    ELSE
+        is_male := CASE WHEN end_letters IN ('ος', 'ης', 'ας', 'ων', 'ός', 'ής', 'άς') THEN TRUE ELSE FALSE END;
+        is_female := CASE WHEN SUBSTR(end_letters, 2, 1) IN ('α', 'η', 'ω', 'ά', 'ή', 'ού', 'ώ') THEN TRUE ELSE FALSE END;
+
+        IF is_male OR traveller_name = 'Άδωνις' THEN
+            RETURN 'Male';
+        ELSIF is_female OR traveller_name = 'Άρτεμις' OR traveller_name = 'Ελισάβετ' THEN
+            RETURN 'Female';
+        ELSE
+            RETURN 'Error: traveller name is not Greek or is some exception to these rules';
+        END IF;
     END IF;
 END GET_GENDER;
 
 /*
     Function that determines the destinations that were least visited by women last year, ordered by
-    the number of tourists that have visited them last year.
+    the total number of tourists that have visited them last year.
     The function takes as input the number `n` of destinations to be returned.
 */
 CREATE OR REPLACE FUNCTION LEAST_VISITED_DESTINATIONS_WOMEN(n IN NUMBER) RETURN SYS_REFCURSOR

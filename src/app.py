@@ -70,13 +70,14 @@ def plot_least_visited_destinations_by_women(conn : Connection, n : int):
     plt.bar(x_axis, list(map(lambda x: x[1], result)), width)
     plt.xticks(x_axis, list(map(lambda x: x[0], result)))
     plt.xlabel('Destinations')
-    plt.ylabel('Number of prospecting tourists')
+    plt.ylabel('Female tourists')
     plt.title('Least visited destinated by women (last year)')
     plt.show()
 
 def main():
     conn = openConnection('localhost', 1521, 'xe', 'system', 'parolaAiaPuternica!')
-    plot_most_common_destinations(conn, 5)
+    # plot_most_common_destinations(conn, 5)
+    plot_least_visited_destinations_by_women(conn, 5)
     closeConnection(conn)
 
 if __name__ == '__main__':
