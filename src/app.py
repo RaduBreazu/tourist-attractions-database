@@ -76,9 +76,19 @@ def plot_least_visited_destinations_by_women(conn : Connection, n : int):
 
 def main():
     conn = openConnection('localhost', 1521, 'xe', 'system', 'parolaAiaPuternica!')
-    # plot_most_common_destinations(conn, 5)
-    plot_least_visited_destinations_by_women(conn, 5)
-    closeConnection(conn)
+    while True:
+        command = input('Enter command: ')
+        if command == 'exit':
+            closeConnection(conn)
+            break
+        elif command == 'common':
+            number = int(input('Enter number: '))
+            plot_most_common_destinations(conn, number)
+        elif command == 'least_visited':
+            number = int(input('Enter number: '))
+            plot_least_visited_destinations_by_women(conn, number)
+        else:
+            print('Invalid command: ' + command + '. To quit the application, use \'exit\'.\n')
 
 if __name__ == '__main__':
     main()
