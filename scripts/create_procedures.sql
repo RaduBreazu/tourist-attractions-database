@@ -32,7 +32,7 @@ DECLARE
     destination_name DESTINATIONS.NAME%TYPE;
     destination_country DESTINATIONS.COUNTRY%TYPE;
 BEGIN
-    IF :NEW.FINISH_DATE < SYSDATE THEN
+    IF :NEW.FINISH_DATE <= TO_DATE(TO_CHAR(SYSDATE, 'YYYY-MM-DD'), 'YYYY-MM-DD') THEN
         SELECT NAME, SURNAME INTO tourist_name, tourist_surname FROM TOURISTS WHERE ID = :NEW.TOURIST_ID;
         SELECT NAME, COUNTRY INTO destination_name, destination_country FROM DESTINATIONS WHERE ID = :NEW.DESTINATION_ID;
         IF UPDATING THEN
@@ -44,12 +44,12 @@ BEGIN
 END JOURNEYS_FINISHED;
 
 /*
-    Procedure that deletes a journey from the JOURNEYS table.
+    Procedure that deletes all journeys that have finished from the JOURNEYS table.
 */
-CREATE OR REPLACE PROCEDURE DELETE_JOURNEY(journey_id IN PLS_INTEGER)
+CREATE OR REPLACE PROCEDURE DELETE_JOURNEY
 IS
 BEGIN
-    DELETE FROM JOURNEYS WHERE JOURNEY_ID = journey_id;
+    DELETE FROM JOURNEYS WHERE FINISH_DATE < SYSDATE;
 END DELETE_JOURNEY;
 
 /*
@@ -66,6 +66,7 @@ BEGIN
         repeat_interval => 'FREQ=DAILY;INTERVAL=1',
         enabled => TRUE
     );
+    DBMS_SCHEDULER.RUN_JOB('DELETE_JOURNEY_JOB');
 END;
 /
 
@@ -122,7 +123,7 @@ BEGIN
     IF end_letters IS NULL THEN
         RETURN 'Error: traveller name is null';
     ELSE
-        is_male := CASE WHEN end_letters IN ('ος', 'ης', 'ας', 'ων', 'ός', 'ής', 'άς') THEN TRUE ELSE FALSE END;
+        is_male := CASE WHEN end_letters IN ('ος', 'ης', 'ας', 'ων', 'ός', 'ής', 'άς', 'ών') THEN TRUE ELSE FALSE END;
         is_female := CASE WHEN SUBSTR(end_letters, 2, 1) IN ('α', 'η', 'ω', 'ά', 'ή', 'ού', 'ώ') THEN TRUE ELSE FALSE END;
 
         IF is_male OR traveller_name = 'Άδωνις' THEN
@@ -137,7 +138,7 @@ END GET_GENDER;
 
 /*
     Function that determines the destinations that were least visited by women last year, ordered by
-    the total number of tourists that have visited them last year.
+    the number of female tourists that have visited them.
     The function takes as input the number `n` of destinations to be returned.
 */
 CREATE OR REPLACE FUNCTION LEAST_VISITED_DESTINATIONS_WOMEN(n IN NUMBER) RETURN SYS_REFCURSOR
@@ -146,12 +147,14 @@ IS
 BEGIN
     OPEN v_cursor FOR
         SELECT D.NAME || ', ' || D.COUNTRY, COUNT(DISTINCT J.TOURIST_ID)
-        FROM JOURNEYS J JOIN TOURISTS T ON J.TOURIST_ID = T.ID
-                        JOIN DESTINATIONS D ON J.DESTINATION_ID = D.ID 
-        WHERE EXTRACT(YEAR FROM J.START_DATE) = EXTRACT(YEAR FROM SYSDATE) - 1 AND GET_GENDER(T.NAME) = 'Female'
+        FROM HISTORY J JOIN TOURISTS T ON J.TOURIST_ID = T.ID
+                       JOIN DESTINATIONS D ON (J.DESTINATION_NAME = D.NAME AND J.DESTINATION_COUNTRY = D.COUNTRY)
+        WHERE EXTRACT(YEAR FROM J.START_DATE) = EXTRACT(YEAR FROM SYSDATE) - 1
         GROUP BY D.NAME, D.COUNTRY
-        ORDER BY (SELECT COUNT(DISTINCT TOURIST_ID) FROM HISTORY
-                  WHERE DESTINATION_NAME = D.NAME AND DESTINATION_COUNTRY = D.COUNTRY AND EXTRACT(YEAR FROM START_DATE) = EXTRACT(YEAR FROM SYSDATE) - 1)
+        ORDER BY (SELECT COUNT(DISTINCT H.TOURIST_ID)
+                  FROM HISTORY H JOIN TOURISTS A ON H.TOURIST_ID = A.ID
+                  WHERE H.DESTINATION_NAME = D.NAME AND H.DESTINATION_COUNTRY = D.COUNTRY
+                        AND EXTRACT(YEAR FROM H.START_DATE) = EXTRACT(YEAR FROM SYSDATE) - 1 AND GET_GENDER(A.NAME) = 'Female')
         FETCH FIRST n ROWS ONLY;
     RETURN v_cursor;
 END LEAST_VISITED_DESTINATIONS_WOMEN;

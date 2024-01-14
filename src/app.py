@@ -9,9 +9,9 @@ import cx_Oracle
 @dataclass
 class Connection:
     conn : cx_Oracle.Connection
-    cursor : cx_Oracle.Cursor
+    cursor : cx_Oracle.CURSOR
 
-def openConnection(host, port, service_name, user, password) -> Connection:
+def openConnection(host : str, port : int, service_name : str, user : str, password : str) -> Connection:
     dsn = cx_Oracle.makedsn(host, port, service_name)
     connection = cx_Oracle.connect(user, password, dsn)
     cursor = connection.cursor()
