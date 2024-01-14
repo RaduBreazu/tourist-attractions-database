@@ -72,41 +72,6 @@ END;
 /
 
 /*
-    Function that returns the most popular destinations for a given tourist.
-*/
-CREATE OR REPLACE FUNCTION MOST_POPULAR_DESTINATIONS(tourist_id IN PLS_INTEGER) RETURN SYS_REFCURSOR
-IS
-    v_cursor SYS_REFCURSOR;
-BEGIN
-    OPEN v_cursor FOR
-        SELECT D.NAME || ', ' || D.COUNTRY
-        FROM DESTINATIONS D JOIN TOURISTS T ON D.ID = T.DESTINATION_ID
-        WHERE T.ID = tourist_id
-        GROUP BY D.NAME, D.COUNTRY
-        ORDER BY COUNT(*) DESC
-        FETCH FIRST 5 ROWS ONLY;
-    RETURN v_cursor;
-END MOST_POPULAR_DESTINATIONS;
-
-/*
-    Function that returns last year's most popular `n` destinations (from the same period as the current one),
-    ordered by the number of tourists that are going to visit them, together with the number of tourists that have visited them.
-*/
-CREATE OR REPLACE FUNCTION DESTINATIONS_LAST_YEAR(n IN PLS_INTEGER) RETURN SYS_REFCURSOR
-IS
-    v_cursor SYS_REFCURSOR;
-BEGIN
-    OPEN v_cursor FOR
-        SELECT DESTINATION_NAME || ', ' || DESTINATION_COUNTRY, COUNT(DISTINCT TOURIST_ID)
-        FROM HISTORY
-        WHERE START_DATE BETWEEN ADD_MONTHS(SYSDATE, -13) AND ADD_MONTHS(SYSDATE, -11)
-        GROUP BY DESTINATION_NAME, DESTINATION_COUNTRY
-        ORDER BY COUNT(DISTINCT TOURIST_ID) DESC
-        FETCH FIRST n ROWS ONLY;
-    RETURN v_cursor;
-END DESTINATIONS_LAST_YEAR;
-
-/*
     Helper function that determines a traveller's gender based on his name (the function works only for Greek travellers).
 */
 CREATE OR REPLACE FUNCTION GET_GENDER(traveller_name IN VARCHAR2) RETURN VARCHAR2

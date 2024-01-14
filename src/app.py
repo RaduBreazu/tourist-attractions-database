@@ -1,6 +1,5 @@
 from dataclasses import dataclass
 
-from functools import reduce
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -20,14 +19,6 @@ def openConnection(host : str, port : int, service_name : str, user : str, passw
 def closeConnection(connection : Connection):
     connection.cursor.close()
     connection.conn.close()
-
-def executeQuery(connection : Connection, query : str) -> list[any] | None:
-    try:
-        connection.cursor.execute(query)
-        return connection.cursor.fetchall()
-    except cx_Oracle.Error as error:
-        print(error)
-        return None
     
 def callFunction(connection : Connection, name : str, args : list[any]) -> list[any] | None:
     try:
@@ -37,17 +28,11 @@ def callFunction(connection : Connection, name : str, args : list[any]) -> list[
         print(error)
         return None
 
-def show(data : list[any]) -> str:
-    f = lambda x : 'NULL' if x is None else x
-    list_str = list(map(lambda x: f'{f(x[0])}, {f(x[1])}', data))
-    return reduce(lambda x, y: x + '\n' + y, list_str)
-
 def plot_most_common_destinations(conn : Connection, n : int):
     result = callFunction(conn, 'TRENDING_DESTINATIONS', [n])
     if result is None:
         return
     
-    # plot result
     plt.rcParams["figure.figsize"] = (8, 6)
     x_axis = np.arange(len(result))
     width = 0.5
@@ -63,7 +48,6 @@ def plot_least_visited_destinations_by_women(conn : Connection, n : int):
     if result is None:
         return
     
-    # plot result
     plt.rcParams["figure.figsize"] = (8, 6)
     x_axis = np.arange(len(result))
     width = 0.5
@@ -82,10 +66,10 @@ def main():
             closeConnection(conn)
             break
         elif command == 'common':
-            number = int(input('Enter number: '))
+            number = int(input('Enter number of destinations: '))
             plot_most_common_destinations(conn, number)
         elif command == 'least_visited':
-            number = int(input('Enter number: '))
+            number = int(input('Enter number of destinations: '))
             plot_least_visited_destinations_by_women(conn, number)
         else:
             print('Invalid command: ' + command + '. To quit the application, use \'exit\'.\n')
